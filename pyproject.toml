@@ -1,11 +1,21 @@
 [project]
-name = "ajuste-pregao"
+name = "b3ajustes"
 version = "0.1.0"
-description = "Add your description here"
+description = "A tool that fetches 'ajustes do pregão' from B3, Brazilian Stock Exchange"
 readme = "README.md"
+authors = [
+    { name = "Celso Fassoni", email = "cfassoni@users.noreply.github.com" }
+]
 requires-python = ">=3.13"
 dependencies = [
     "beautifulsoup4>=4.14.2",
     "httpx>=0.28.1",
     "lxml>=6.0.2",
 ]
+
+[project.scripts]
+b3ajustes = "b3ajustes.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.9.7,<0.10.0"]
+build-backend = "uv_build"

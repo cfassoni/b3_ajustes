@@ -1,62 +1,131 @@
-A small scraper that fetches "ajustes do pregão" from BMF Bovespa and outputs JSON and/or CSV.
+# B3 Ajustes
 
-Features
+A small Python package that fetches "ajustes do pregão" from BMF Bovespa and
+outputs JSON and/or CSV.
+
+## Features
+
 - Scrapes settlement/adjustment tables for a given date.
-- Handles server encoding (ISO-8859-1) and produces CSV compatible with Excel (ISO-8859-1 + semicolon separator).
-- Fills grouped empty "Mercadoria" values from the last non-empty value.
-- Adds a generated "Ticker" field (prefix of `Mercadoria` before `-` + `Vencimento`, spaces removed).
+- Handles server encoding (ISO-8859-1) and produces CSV compatible with Excel
+  (ISO-8859-1 + semicolon separator).
+- Fills grouped empty `Mercadoria` values from the last non-empty value.
+- Adds a generated `Ticker` field (prefix of `Mercadoria` before `-` +
+  `Vencimento`, spaces removed).
 - Supports multi-day business-day runs, forward or backward, with rate limiting.
+- Project is fully compliant with `uv` and `uvx` tools
 
-Dependencies
-- Python 3.8+
-- See `requirements.txt` for packages. Install with:
+## Quickstart
 
-```powershell
-pip install -r requirements.txt
+1. Install the package locally for development using uv:
+
+```sh
+uv tool install -e .
 ```
 
-Usage
+2. Run the command-line tool `b3ajustes`:
 
-Basic single-day (CSV only):
+```sh
+# Single day, save CSV
+b3ajustes 31/10/2025 -f ajuste_2025-10-31.csv
 
-```powershell
-python scraper.py 31/10/2025 -f ajuste_2025-10-31.csv
+# Multiple business days (forward), print JSON to stdout
+b3ajustes 01/10/2025 -d 5 -j
+
+# Multiple business days (backward), save CSV
+b3ajustes 03/11/2025 -d 10 -b -f ajuste_2025-11.csv
 ```
 
-Multiple business days (forward):
+## Installation
 
-```powershell
-python scraper.py 01/10/2025 -d 5 -f ajuste_2025-10.csv
+You can install the project locally (editable) for development or normally using
+`uv`:
+
+```sh
+# Editable / development install
+uv tool install -e .
+
+# Normal install
+uv tool install .
 ```
 
-Multiple business days (backward):
+The commands above will install the `b3ajustes` console script into the active
+tool environment so you can run it directly from your shell.
 
-```powershell
-python scraper.py 03/11/2025 -d 10 -b -f ajuste_2025-11.csv
+## CLI usage and options
+
+Usage summary:
+
+```text
+b3ajustes <date> [-f FILE] [-d DAYS] [--delay SECONDS] [-b] [-j]
 ```
 
-JSON output
-- By default JSON output is off. Use `-j` or `--json` to print JSON to stdout (UTF-8).
+Options:
 
-```powershell
-python scraper.py 03/11/2025 -d 3 -j
+- date (positional): Starting date in DD/MM/YYYY format.
+- -f, --file: Output CSV file path. When present data is written as CSV
+  (encoding=ISO-8859-1, delimiter=';').
+- -d, --days: Number of business days to process (default: 1).
+- --delay: Delay between requests in seconds (default: 1.0).
+- -b, --backward: Process dates backward from the start date (default: forward).
+- -j, --json: Print JSON to stdout (UTF-8) instead of or in addition to CSV.
+
+Example:
+
+```sh
+b3ajustes 15/09/2025 -d 3 --delay 0.5 -f ajuste_sep.csv
 ```
 
-Rate limiting
-- Use `--delay` to set seconds between requests (default 1.0). Keep this reasonable to avoid overloading the site.
+## CSV / JSON specifics
 
-CSV encoding and separator
-- CSV files are written with `encoding=iso-8859-1` and `;` delimiter to open properly in Excel on Windows (Portuguese locales).
+- CSVs are written with `encoding=iso-8859-1` and `;` as delimiter to open
+  correctly in Excel on Portuguese Windows locales.
+- JSON printed to stdout is encoded as UTF-8 and `ensure_ascii=False` is used to
+  preserve Unicode characters.
 
-Notes
-- `Ticker` is created from `Mercadoria` (text before the first `-`) concatenated with `Vencimento` with spaces removed. If `Mercadoria` is empty on a given row, the last known non-empty `Mercadoria` in that table is used.
-- The scraper respects weekends (skips Saturdays and Sundays when counting business days).
-- If you want the terminal to display UTF-8 correctly in PowerShell, you can set:
+## Examples
+
+1. Run the provided programmatic example script (from the repository root):
+
+```powershell
+python .\\examples\\run_programmatic.py 31/10/2025 --csv output.csv --json
+```
+
+This script demonstrates how to call the scraper from Python and save the
+results to CSV or print JSON.
+
+2. Minimal programmatic usage (import in your code):
+
+```python
+from b3ajustes.scraper import scrape_ajustes
+
+# scrape for a single date
+rows = scrape_ajustes("31/10/2025")
+if rows:
+    # each row is a dict; add the Data field if you want the same layout as CLI
+    for r in rows:
+        r["Data"] = "31/10/2025"
+    # Now write CSV, inspect, or further process
+```
+
+## Notes
+
+- `Ticker` is generated from the `Mercadoria` column (text before the first `-`)
+  concatenated with `Vencimento`, with spaces removed.
+- Empty `Mercadoria` cells in grouped rows are filled with the last non-empty
+  `Mercadoria` from the same table.
+- Weekends (Sat/Sun) are skipped when counting business days.
+
+## PowerShell UTF-8 tip
+
+If your PowerShell does not display UTF-8 correctly, set the output encoding:
 
 ```powershell
 $OutputEncoding = [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 ```
 
-License / attribution
-- No license set. Use as you wish.
+## Dependencies
 
+- Python 3.8+
+- httpx, beautifulsoup4, lxml (installed via requirements or the package)
+
+---
